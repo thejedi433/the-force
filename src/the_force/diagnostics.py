@@ -134,3 +134,75 @@ def get_all_diagnostics() -> dict:
         'load': get_load_average(),
         'network': get_network_interfaces()
     }
+
+
+def get_force_sensitivity() -> dict:
+    """Measure system's connection to the Force.
+    
+    The Force flows through all systems. Low CPU, moderate load,
+    and balanced resources indicate a strong connection.
+    
+    Returns:
+        Dict with 'score' (0-100), 'level' (category), and 'message'
+    """
+    score = 100  # Start with full connection
+    
+    # CPU interference - less CPU usage = stronger connection
+    cpu_str = get_cpu_usage()
+    if cpu_str:
+        try:
+            cpu_pct = float(cpu_str.split('%')[0].split()[0])
+            # High CPU disrupts the Force
+            score -= min(cpu_pct * 0.5, 40)
+        except (ValueError, IndexError):
+            pass
+    
+    # Load average - calm systems connect better
+    load = get_load_average()
+    if load:
+        try:
+            load1 = float(load['1min'])
+            # Normalize load (assume 4 cores as baseline)
+            load_factor = min(load1 / 4.0, 1.0)
+            score -= load_factor * 20
+        except (ValueError, KeyError):
+            pass
+    
+    # Memory usage - balanced systems channel the Force better
+    mem = get_memory_usage()
+    if mem:
+        try:
+            mem_pct = (mem['used'] / mem['total']) * 100
+            # Very high or very low memory disrupts balance
+            if mem_pct > 80:
+                score -= (mem_pct - 80) * 0.5
+            elif mem_pct < 20:
+                score -= 10
+        except (ZeroDivisionError, KeyError):
+            pass
+    
+    # Ensure score stays in valid range
+    score = max(0, min(100, score))
+    
+    # Determine level based on score
+    if score >= 90:
+        level = 'Master'
+        message = 'The Force is extremely strong with this system.'
+    elif score >= 70:
+        level = 'Strong'
+        message = 'The system has a strong connection to the Force.'
+    elif score >= 50:
+        level = 'Sensitive'
+        message = 'The system is sensitive to the Force.'
+    elif score >= 30:
+        level = 'Weak'
+        message = 'The Force connection is weak.'
+    else:
+        level = 'Dark Side'
+        message = 'The system is clouded by the dark side.'
+    
+    return {
+        'score': round(score, 1),
+        'level': level,
+        'message': message
+    }

@@ -8,8 +8,9 @@ from typing import Optional
 
 from the_force import __version__
 from the_force.wisdom import get_random_wisdom, get_all_wisdom, format_wisdom, wisdom_count
-from the_force.diagnostics import get_all_diagnostics, get_cpu_usage, get_memory_usage, get_disk_usage
+from the_force.diagnostics import get_all_diagnostics, get_cpu_usage, get_memory_usage, get_disk_usage, get_force_sensitivity
 from the_force.meditation import meditation_timer, format_duration, breathing_guide
+from the_force.lightsaber import get_random_lightsaber, get_lightsaber_by_name, get_all_lightsaber_colors
 
 
 def cmd_wisdom(args: argparse.Namespace) -> int:
@@ -99,6 +100,46 @@ def cmd_version(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sensitivity(args: argparse.Namespace) -> int:
+    """Handle sensitivity command."""
+    sensitivity = get_force_sensitivity()
+    print("\n=== Force Sensitivity Analysis ===\n")
+    print(f"Score: {sensitivity['score']}/100")
+    print(f"Level: {sensitivity['level']}")
+    print(f"\n{sensitivity['message']}")
+    return 0
+
+
+def cmd_lightsaber(args: argparse.Namespace) -> int:
+    """Handle lightsaber command."""
+    if hasattr(args, 'list') and args.list:
+        colors = get_all_lightsaber_colors()
+        print("=== All Lightsaber Colors ===\n")
+        for color in colors:
+            print(f"  • {color}")
+        return 0
+    
+    saber = get_random_lightsaber()
+    color_codes = {
+        'blue': '\033[94m',
+        'green': '\033[92m',
+        'red': '\033[91m',
+        'purple': '\033[95m',
+        'yellow': '\033[93m',
+        'white': '\033[97m',
+        'cyan': '\033[96m'
+    }
+    color_code = color_codes.get(saber['color'], '\033[96m')
+    reset = '\033[0m'
+    
+    print("\n=== Random Lightsaber ===\n")
+    print(f"{color_code}{saber['name']}'s Lightsaber{reset}")
+    print(f"Color: {saber['color']}")
+    print(f"Alignment: {saber['alignment']}")
+    print(f"\n{saber['description']}")
+    return 0
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
@@ -179,6 +220,25 @@ def create_parser() -> argparse.ArgumentParser:
         help='Show version information'
     )
     
+    # sensitivity command
+    subparsers.add_parser(
+        'sensitivity',
+        help='Measure Force sensitivity',
+        description='Analyze system\'s connection to the Force'
+    )
+    
+    # lightsaber command
+    lightsaber_parser = subparsers.add_parser(
+        'lightsaber',
+        help='Get a random lightsaber',
+        description='Discover lightsabers from the Star Wars universe'
+    )
+    lightsaber_parser.add_argument(
+        '-l', '--list',
+        action='store_true',
+        help='List all available lightsaber colors'
+    )
+    
     return parser
 
 
@@ -200,6 +260,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             return cmd_meditate(args)
         elif args.command == 'version':
             return cmd_version(args)
+        elif args.command == 'sensitivity':
+            return cmd_sensitivity(args)
+        elif args.command == 'lightsaber':
+            return cmd_lightsaber(args)
         else:
             parser.print_help()
             return 1

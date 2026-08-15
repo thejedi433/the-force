@@ -6,48 +6,47 @@ from typing import Optional
 
 WISDOM_QUOTES = [
     # Yoda
-    "Do or do not. There is no try.",
-    "Luminous beings are we, not this crude matter.",
-    "Fear is the path to the dark side.",
-    "Size matters not.",
-    "Truly wonderful, the mind of a child is.",
-    "The dark side clouds everything.",
-    "A Jedi uses the Force for knowledge and defense, never for attack.",
-    "Difficult to see. The dark side of the Force clouds everything.",
-    "Patience you must have, my young Padawan.",
-    "The Force will be with you. Always.",
-    "Your eyes can deceive you. Don't trust them.",
-    "In my experience, there is no such thing as luck.",
-    "Adventure. Excitement. A Jedi craves not these things.",
-    "Wars not make one great.",
-    "Ready are you? What know you of ready?",
+    {"quote": "Do or do not. There is no try.", "author": "Yoda"},
+    {"quote": "Luminous beings are we, not this crude matter.", "author": "Yoda"},
+    {"quote": "Fear is the path to the dark side.", "author": "Yoda"},
+    {"quote": "Size matters not.", "author": "Yoda"},
+    {"quote": "Truly wonderful, the mind of a child is.", "author": "Yoda"},
+    {"quote": "The dark side clouds everything.", "author": "Yoda"},
+    {"quote": "A Jedi uses the Force for knowledge and defense, never for attack.", "author": "Yoda"},
+    {"quote": "Difficult to see. The dark side of the Force clouds everything.", "author": "Yoda"},
+    {"quote": "Patience you must have, my young Padawan.", "author": "Yoda"},
+    {"quote": "The Force will be with you. Always.", "author": "Yoda"},
+    {"quote": "Your eyes can deceive you. Don't trust them.", "author": "Yoda"},
+    {"quote": "In my experience, there is no such thing as luck.", "author": "Yoda"},
+    {"quote": "Adventure. Excitement. A Jedi craves not these things.", "author": "Yoda"},
+    {"quote": "Wars not make one great.", "author": "Yoda"},
+    {"quote": "Ready are you? What know you of ready?", "author": "Yoda"},
     
     # Obi-Wan Kenobi
-    "So uncivilized.",
-    "You will find only what you bring in.",
-    "The Force is what gives a Jedi his power.",
-    "Who's the more foolish; the fool, or the fool who follows him?",
-    "Your clone troopers will get the job done.",
-    "The dark side of the Force is a pathway to many abilities some consider to be unnatural.",
+    {"quote": "So uncivilized.", "author": "Obi-Wan Kenobi"},
+    {"quote": "You will find only what you bring in.", "author": "Obi-Wan Kenobi"},
+    {"quote": "The Force is what gives a Jedi his power.", "author": "Obi-Wan Kenobi"},
+    {"quote": "Who's the more foolish; the fool, or the fool who follows him?", "author": "Obi-Wan Kenobi"},
+    {"quote": "Your clone troopers will get the job done.", "author": "Obi-Wan Kenobi"},
+    {"quote": "The dark side of the Force is a pathway to many abilities some consider to be unnatural.", "author": "Obi-Wan Kenobi"},
     
     # Qui-Gon Jinn
-    "Your focus determines your reality.",
-    "Remember, your focus determines your reality.",
-    "The ability to speak does not make you intelligent.",
+    {"quote": "Your focus determines your reality.", "author": "Qui-Gon Jinn"},
+    {"quote": "The ability to speak does not make you intelligent.", "author": "Qui-Gon Jinn"},
     
     # Mace Windu
-    "This is the moment. Everything we've worked towards.",
-    "I'm getting too old for this sort of thing.",
+    {"quote": "This is the moment. Everything we've worked towards.", "author": "Mace Windu"},
+    {"quote": "I'm getting too old for this sort of thing.", "author": "Mace Windu"},
     
     # Ahsoka Tano
-    "A leader's strength is measured by the strength of those they lead.",
-    "I am no Jedi.",
+    {"quote": "A leader's strength is measured by the strength of those they lead.", "author": "Ahsoka Tano"},
+    {"quote": "I am no Jedi.", "author": "Ahsoka Tano"},
     
     # Miscellaneous
-    "A long time ago in a galaxy far, far away...",
-    "I have a bad feeling about this.",
-    "Never tell me the odds!",
-    "The Force is strong with this one.",
+    {"quote": "A long time ago in a galaxy far, far away...", "author": "Narrator"},
+    {"quote": "I have a bad feeling about this.", "author": "Various"},
+    {"quote": "Never tell me the odds!", "author": "Han Solo"},
+    {"quote": "The Force is strong with this one.", "author": "Darth Vader"},
 ]
 
 COLORED_OUTPUT = {
@@ -62,20 +61,27 @@ COLORED_OUTPUT = {
 
 
 def get_random_wisdom() -> str:
-    """Return a random Jedi wisdom quote."""
-    return random.choice(WISDOM_QUOTES)
+    """Return a random Jedi wisdom quote (as a formatted string with author)."""
+    entry = random.choice(WISDOM_QUOTES)
+    return f"{entry['quote']} — {entry['author']}"
+
+
+def get_random_wisdom_with_author() -> dict:
+    """Return a random Jedi wisdom quote with author as a dict."""
+    return random.choice(WISDOM_QUOTES).copy()
 
 
 def get_wisdom_by_index(index: int) -> Optional[str]:
     """Return wisdom quote by index, or None if out of range."""
     if 0 <= index < len(WISDOM_QUOTES):
-        return WISDOM_QUOTES[index]
+        entry = WISDOM_QUOTES[index]
+        return f"{entry['quote']} — {entry['author']}"
     return None
 
 
 def get_all_wisdom() -> list[str]:
-    """Return all wisdom quotes."""
-    return WISDOM_QUOTES.copy()
+    """Return all wisdom quotes as formatted strings."""
+    return [f"{entry['quote']} — {entry['author']}" for entry in WISDOM_QUOTES]
 
 
 def format_wisdom(quote: str, color: str = "cyan") -> str:

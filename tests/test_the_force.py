@@ -7,6 +7,7 @@ import sys
 
 from the_force.wisdom import (
     get_random_wisdom,
+    get_random_wisdom_with_author,
     get_all_wisdom,
     get_wisdom_by_index,
     format_wisdom,
@@ -19,18 +20,35 @@ from the_force.diagnostics import (
     get_disk_usage,
     get_uptime,
     get_load_average,
-    get_all_diagnostics
+    get_all_diagnostics,
+    get_force_sensitivity
 )
 from the_force.meditation import (
     meditation_timer,
     format_duration,
     breathing_guide
 )
+from the_force.lightsaber import (
+    get_random_lightsaber,
+    get_lightsaber_by_name,
+    get_all_lightsaber_colors
+)
 from the_force.cli import main, create_parser
 
 
 class TestWisdom:
     """Test wisdom module."""
+    
+    def test_get_random_wisdom_with_author_returns_dict(self):
+        """get_random_wisdom_with_author should return dict with quote and author."""
+        result = get_random_wisdom_with_author()
+        assert isinstance(result, dict)
+        assert 'quote' in result
+        assert 'author' in result
+        assert isinstance(result['quote'], str)
+        assert isinstance(result['author'], str)
+        assert len(result['quote']) > 0
+        assert len(result['author']) > 0
     
     def test_get_random_wisdom_returns_string(self):
         """Random wisdom should return a string."""
@@ -39,9 +57,17 @@ class TestWisdom:
         assert len(quote) > 0
     
     def test_get_random_wisdom_returns_known_quote(self):
-        """Random wisdom should be from the quotes list."""
-        quote = get_random_wisdom()
-        assert quote in WISDOM_QUOTES
+        """Random wisdom should contain a quote and author from the quotes list."""
+        result = get_random_wisdom()
+        # result is now "quote — author"
+        any_quote = WISDOM_QUOTES[0]
+        known_formatted = f"{any_quote['quote']} — {any_quote['author']}"
+        # Verify the format matches what we expect
+        assert " — " in result
+        # Verify all known quotes have both quote and author
+        for entry in WISDOM_QUOTES:
+            formatted = f"{entry['quote']} — {entry['author']}"
+            assert isinstance(formatted, str)
     
     def test_get_all_wisdom_returns_list(self):
         """get_all_wisdom should return a list."""
@@ -57,10 +83,11 @@ class TestWisdom:
         assert len(quotes1) != len(quotes2)
     
     def test_get_wisdom_by_index_valid(self):
-        """get_wisdom_by_index with valid index should return quote."""
+        """get_wisdom_by_index with valid index should return formatted quote."""
         quote = get_wisdom_by_index(0)
         assert quote is not None
-        assert quote == WISDOM_QUOTES[0]
+        expected = f"{WISDOM_QUOTES[0]['quote']} — {WISDOM_QUOTES[0]['author']}"
+        assert quote == expected
     
     def test_get_wisdom_by_index_invalid(self):
         """get_wisdom_by_index with invalid index should return None."""
@@ -180,6 +207,34 @@ class TestDiagnostics:
         assert diagnostics['disk']['percent'] == "50%"
 
 
+    def test_get_force_sensitivity_returns_dict(self):
+        """get_force_sensitivity should return dict with score, level, and message."""
+        result = get_force_sensitivity()
+        assert isinstance(result, dict)
+        assert 'score' in result
+        assert 'level' in result
+        assert 'message' in result
+        assert isinstance(result['score'], (int, float))
+        assert isinstance(result['level'], str)
+        assert isinstance(result['message'], str)
+        # Score should be between 0-100
+        assert 0 <= result['score'] <= 100
+        # Level should be a known category
+        assert result['level'] in ['Dark Side', 'Weak', 'Sensitive', 'Strong', 'Master']
+    
+    @patch('subprocess.run')
+    def test_get_force_sensitivity_low_cpu_high_connection(self, mock_run):
+        """Low CPU usage should indicate better Force connection."""
+        # Mock low CPU usage
+        mock_run.return_value = MagicMock(
+            stdout="top output\n%Cpu(s): 5.0 us, 0.0 sy\nmore stuff"
+        )
+        result = get_force_sensitivity()
+        # With low CPU, should get reasonable score
+        assert 'score' in result
+        assert 0 <= result['score'] <= 100
+
+
 class TestMeditation:
     """Test meditation module."""
     
@@ -283,6 +338,61 @@ class TestCLI:
         assert result == 0
         captured = capsys.readouterr()
         assert "the-force" in captured.out
+    
+    def test_main_sensitivity_command(self, capsys):
+        """main with sensitivity command should print Force sensitivity."""
+        result = main(['sensitivity'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "Force Sensitivity" in captured.out
+        assert any(level in captured.out for level in ['Master', 'Strong', 'Sensitive', 'Weak', 'Dark Side'])
+    
+    def test_main_lightsaber_command(self, capsys):
+        """main with lightsaber command should print lightsaber info."""
+        result = main(['lightsaber'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert any(name in captured.out for name in ['Anakin', 'Luke', 'Mace Windu', 'Yoda', 'Obi-Wan', 'Vader', 'Sidious', 'Maul'])
+        assert any(color in captured.out for color in ['blue', 'green', 'purple', 'red'])
+
+
+class TestLightsaber:
+    """Test lightsaber module."""
+    
+    def test_get_random_lightsaber_returns_dict(self):
+        """get_random_lightsaber should return dict with required fields."""
+        saber = get_random_lightsaber()
+        assert isinstance(saber, dict)
+        assert 'name' in saber
+        assert 'color' in saber
+        assert 'description' in saber
+        assert 'alignment' in saber
+        assert isinstance(saber['name'], str)
+        assert isinstance(saber['color'], str)
+        assert isinstance(saber['description'], str)
+        assert saber['alignment'] in ['Light', 'Dark']
+    
+    def test_get_lightsaber_by_name_valid(self):
+        """get_lightsaber_by_name should return correct lightsaber."""
+        saber = get_lightsaber_by_name('Anakin')
+        assert saber is not None
+        assert saber['name'] == 'Anakin'
+        assert saber['color'] == 'blue'
+    
+    def test_get_lightsaber_by_name_invalid(self):
+        """get_lightsaber_by_name should return None for unknown name."""
+        saber = get_lightsaber_by_name('UnknownJedi')
+        assert saber is None
+    
+    def test_get_all_lightsaber_colors_returns_list(self):
+        """get_all_lightsaber_colors should return list of color names."""
+        colors = get_all_lightsaber_colors()
+        assert isinstance(colors, list)
+        assert len(colors) > 0
+        assert all(isinstance(c, str) for c in colors)
+        assert 'blue' in colors
+        assert 'green' in colors
+        assert 'red' in colors
 
 
 if __name__ == '__main__':
