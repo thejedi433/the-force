@@ -1,6 +1,6 @@
-# the-force 🌟
+# the-force
 
-A Jedi CLI toolkit for wisdom, diagnostics, and meditation.
+A Jedi CLI toolkit for wisdom, diagnostics, meditation, and dark side contemplation.
 
 ## Installation
 
@@ -27,6 +27,45 @@ the-force wisdom --count
 # Colorized output
 the-force wisdom --color green
 ```
+
+### sith
+Receive wisdom from the Sith - the dark side of the Force. Perfect for contrast and balance.
+
+```bash
+# Random dark side quote
+the-force sith
+
+# Display the Sith Code
+the-force sith --code
+
+# List all Sith quotes
+the-force sith --list
+
+# Custom color
+the-force sith --color purple
+```
+
+### holocron
+Your personal wisdom journal. Store, search, and manage your own Jedi insights with persistent storage.
+
+```bash
+# Add a new wisdom entry
+the-force holocron --add "The best teacher is failure" --source "Yoda"
+
+# List all entries
+the-force holocron --list
+
+# Search entries
+the-force holocron --search "force"
+
+# Delete an entry by ID
+the-force holocron --delete 1
+
+# Limit results
+the-force holocron --list --limit 5
+```
+
+Holocron data is stored in `~/.the_force_holocron.json` and persists across sessions.
 
 ### diagnose
 Check system health with Jedi precision.
@@ -65,6 +104,24 @@ the-force version
 the-force --version
 ```
 
+### sensitivity
+Measure Force sensitivity.
+
+```bash
+the-force sensitivity
+```
+
+### lightsaber
+Get a random lightsaber.
+
+```bash
+# Random lightsaber
+the-force lightsaber
+
+# List all available colors
+the-force lightsaber --list
+```
+
 ## Examples
 
 ```bash
@@ -76,16 +133,24 @@ the-force diagnose
 
 # Take a break
 the-force meditate --duration 300
+
+# Store your own insight
+the-force holocron --add "Do. Or do not. There is no try." --source "My mentor"
+
+# Contrast light and dark
+the-force wisdom && the-force sith --code
 ```
 
 ## Features
 
 - **30+ wisdom quotes** from Yoda, Obi-Wan, and other Jedi
+- **22+ Sith quotes** from Darth Vader, Sidious, Maul, and the Sith Code
+- **Personal holocron** - persistent wisdom journal with CRUD operations
 - **System diagnostics** (CPU, memory, disk, uptime, load)
 - **Meditation timer** with breathing guide
 - **Colorized output** for terminal
 - **JSON output** for scripting
-- **Fully tested** with pytest
+- **Fully tested** with pytest (87 tests)
 
 ## Development
 
