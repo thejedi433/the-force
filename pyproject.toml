@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "the-force"
+version = "0.1.0"
+description = "A Jedi CLI for wisdom, diagnostics, and meditation"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "The Force" }]
+keywords = ["jedi", "cli", "wisdom", "star-wars"]
+
+[project.scripts]
+the-force = "the_force.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
