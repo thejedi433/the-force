@@ -11,6 +11,8 @@ from the_force.wisdom import get_random_wisdom, get_all_wisdom, format_wisdom, w
 from the_force.diagnostics import get_all_diagnostics, get_cpu_usage, get_memory_usage, get_disk_usage, get_force_sensitivity
 from the_force.meditation import meditation_timer, format_duration, breathing_guide
 from the_force.lightsaber import get_random_lightsaber, get_lightsaber_by_name, get_all_lightsaber_colors
+from the_force.sith import get_random_sith_quote, get_all_sith_quotes, format_sith_quote, sith_quote_count, get_sith_code
+from the_force.holocron import Holocron, HolocronError
 
 
 def cmd_wisdom(args: argparse.Namespace) -> int:
@@ -140,6 +142,85 @@ def cmd_lightsaber(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sith(args: argparse.Namespace) -> int:
+    """Handle sith command."""
+    if args.list:
+        quotes = get_all_sith_quotes()
+        for i, quote in enumerate(quotes, 1):
+            print(f"{i}. {quote}")
+        print(f"\nTotal: {sith_quote_count()} Sith quotes")
+        return 0
+    
+    if args.code:
+        print("\n=== The Sith Code ===\n")
+        print(format_sith_quote(get_sith_code(), color="red"))
+        return 0
+    
+    quote = get_random_sith_quote()
+    print(format_sith_quote(quote, args.color))
+    return 0
+
+
+def cmd_holocron(args: argparse.Namespace) -> int:
+    """Handle holocron command."""
+    import os
+    db_path = os.path.expanduser("~/.the_force_holocron.json")
+    holocron = Holocron(db_path)
+    
+    if args.add is not None:
+        source = args.source or ""
+        try:
+            entry_id = holocron.add_entry(args.add, source)
+            print(f"✓ Wisdom recorded (ID: {entry_id})")
+        except HolocronError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        return 0
+    
+    if args.list:
+        entries = holocron.list_entries(limit=args.limit)
+        if not entries:
+            print("Your holocron is empty. Record wisdom with: the-force holocron --add \"text\"")
+            return 0
+        for entry in entries:
+            source_str = f" — {entry['source']}" if entry['source'] else ""
+            print(f"[{entry['id']}] {entry['text']}{source_str}")
+        print(f"\n{holocron.entry_count()} total entries")
+        return 0
+    
+    if args.search is not None:
+        try:
+            results = holocron.search_entries(args.search)
+            if not results:
+                print(f"No entries found matching '{args.search}'")
+                return 0
+            for entry in results:
+                source_str = f" — {entry['source']}" if entry['source'] else ""
+                print(f"[{entry['id']}] {entry['text']}{source_str}")
+            print(f"\n{len(results)} entries found")
+        except HolocronError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        return 0
+    
+    if args.delete is not None:
+        if holocron.delete_entry(args.delete):
+            print(f"✓ Entry {args.delete} deleted")
+        else:
+            print(f"Entry {args.delete} not found")
+        return 0
+    
+    # Default: show count and recent
+    count = holocron.entry_count()
+    print(f"Your holocron contains {count} entries.")
+    if count > 0:
+        print("\nRecent entries:")
+        for entry in holocron.list_entries(limit=3):
+            source_str = f" — {entry['source']}" if entry['source'] else ""
+            print(f"  [{entry['id']}] {entry['text']}{source_str}")
+    return 0
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
@@ -239,6 +320,70 @@ def create_parser() -> argparse.ArgumentParser:
         help='List all available lightsaber colors'
     )
     
+    # sith command
+    sith_parser = subparsers.add_parser(
+        'sith',
+        help='Dark side quotes for contrast',
+        description='Receive wisdom from the Sith - the dark side of the Force'
+    )
+    sith_parser.add_argument(
+        '-l', '--list',
+        action='store_true',
+        help='List all Sith quotes'
+    )
+    sith_parser.add_argument(
+        '-c', '--code',
+        action='store_true',
+        help='Display the Sith Code'
+    )
+    sith_parser.add_argument(
+        '--color',
+        choices=['red', 'purple', 'yellow'],
+        default='red',
+        help='Color for the quote (default: red)'
+    )
+    
+    # holocron command
+    holocron_parser = subparsers.add_parser(
+        'holocron',
+        help='Personal wisdom journal',
+        description='Record and retrieve your own Jedi wisdom'
+    )
+    holocron_parser.add_argument(
+        '-a', '--add',
+        type=str,
+        metavar='TEXT',
+        help='Add a wisdom entry'
+    )
+    holocron_parser.add_argument(
+        '-s', '--source',
+        type=str,
+        help='Source/author of the wisdom (used with --add)'
+    )
+    holocron_parser.add_argument(
+        '-l', '--list',
+        action='store_true',
+        help='List all holocron entries'
+    )
+    holocron_parser.add_argument(
+        '--limit',
+        type=int,
+        default=None,
+        help='Limit number of entries shown'
+    )
+    holocron_parser.add_argument(
+        '--search',
+        type=str,
+        metavar='QUERY',
+        help='Search entries by text'
+    )
+    holocron_parser.add_argument(
+        '-d', '--delete',
+        type=int,
+        metavar='ID',
+        help='Delete an entry by ID'
+    )
+    
     return parser
 
 
@@ -264,6 +409,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             return cmd_sensitivity(args)
         elif args.command == 'lightsaber':
             return cmd_lightsaber(args)
+        elif args.command == 'sith':
+            return cmd_sith(args)
+        elif args.command == 'holocron':
+            return cmd_holocron(args)
         else:
             parser.print_help()
             return 1

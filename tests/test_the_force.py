@@ -395,5 +395,115 @@ class TestLightsaber:
         assert 'red' in colors
 
 
+class TestSithCLI:
+    """Test Sith CLI commands."""
+
+    def test_main_sith_command(self, capsys):
+        """main with sith command should print a quote."""
+        result = main(['sith'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert len(captured.out) > 0
+
+    def test_main_sith_list(self, capsys):
+        """main with sith --list should print all quotes."""
+        result = main(['sith', '--list'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "Total:" in captured.out
+
+    def test_main_sith_code(self, capsys):
+        """main with sith --code should print the Sith Code."""
+        result = main(['sith', '--code'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "Sith Code" in captured.out
+        assert "peace" in captured.out.lower()
+
+    def test_main_sith_custom_color(self, capsys):
+        """main with sith --color purple should work."""
+        result = main(['sith', '--color', 'purple'])
+        assert result == 0
+
+
+class TestHolocronCLI:
+    """Test Holocron CLI commands."""
+
+    def test_main_holocron_empty(self, capsys, tmp_path, monkeypatch):
+        """main with holocron on empty store should show message."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        result = main(['holocron'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "0 entries" in captured.out
+
+    def test_main_holocron_add(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --add should add entry."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        result = main(['holocron', '--add', 'Test wisdom', '--source', 'Test'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "recorded" in captured.out
+
+    def test_main_holocron_add_empty(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --add '' should fail."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        result = main(['holocron', '--add', ''])
+        assert result == 1
+
+    def test_main_holocron_add_and_list(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --list should show entries."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'First wisdom'])
+        main(['holocron', '--add', 'Second wisdom'])
+        result = main(['holocron', '--list'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "First wisdom" in captured.out
+        assert "Second wisdom" in captured.out
+
+    def test_main_holocron_search(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --search should find matches."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'The Force is strong'])
+        main(['holocron', '--add', 'Dark side prevails'])
+        result = main(['holocron', '--search', 'Force'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "1 entries found" in captured.out
+
+    def test_main_holocron_search_empty(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --search '' should fail."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        result = main(['holocron', '--search', ''])
+        assert result == 1
+
+    def test_main_holocron_search_no_results(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --search with no matches should show message."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'Test entry'])
+        result = main(['holocron', '--search', 'nonexistent'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "No entries found" in captured.out
+
+    def test_main_holocron_delete(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --delete should remove entry."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'To delete'])
+        result = main(['holocron', '--delete', '1'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "deleted" in captured.out
+
+    def test_main_holocron_delete_nonexistent(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --delete for nonexistent ID."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        result = main(['holocron', '--delete', '999'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "not found" in captured.out
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
