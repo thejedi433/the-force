@@ -106,6 +106,35 @@ class Holocron:
                 return entry.copy()
         return None
     
+    def update_entry(self, entry_id: int, text: Optional[str] = None, source: Optional[str] = None) -> bool:
+        """Update an existing entry.
+        
+        Args:
+            entry_id: ID of the entry to update
+            text: New text (optional, if None keeps current)
+            source: New source (optional, if None keeps current)
+            
+        Returns:
+            True if updated, False if not found
+            
+        Raises:
+            HolocronError: If text is provided but empty or whitespace-only
+        """
+        if text is not None and not text.strip():
+            raise HolocronError("Text cannot be empty")
+        
+        data = self._load_data()
+        for entry in data['entries']:
+            if entry['id'] == entry_id:
+                if text is not None:
+                    entry['text'] = text
+                if source is not None:
+                    entry['source'] = source
+                entry['updated_at'] = datetime.now().isoformat()
+                self._save_data(data)
+                return True
+        return False
+    
     def delete_entry(self, entry_id: int) -> bool:
         """Delete an entry by ID.
         

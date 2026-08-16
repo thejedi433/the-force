@@ -496,6 +496,38 @@ class TestHolocronCLI:
         captured = capsys.readouterr()
         assert "deleted" in captured.out
 
+    def test_main_holocron_update_text(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --update should update entry text."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'Original text'])
+        result = main(['holocron', '--update', '1', '--text', 'Updated text'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "updated" in captured.out.lower()
+        
+        # Verify the update persisted
+        result = main(['holocron', '--list'])
+        captured = capsys.readouterr()
+        assert "Updated text" in captured.out
+        assert "Original text" not in captured.out
+
+    def test_main_holocron_update_source(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --update --source should update source."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'Wisdom', '--source', 'Old Master'])
+        result = main(['holocron', '--update', '1', '--source', 'New Master'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "updated" in captured.out.lower()
+
+    def test_main_holocron_update_nonexistent(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --update for nonexistent ID should fail."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        result = main(['holocron', '--update', '999', '--text', 'anything'])
+        assert result == 1
+        captured = capsys.readouterr()
+        assert "not found" in captured.out.lower()
+
     def test_main_holocron_delete_nonexistent(self, capsys, tmp_path, monkeypatch):
         """main with holocron --delete for nonexistent ID."""
         monkeypatch.setenv("HOME", str(tmp_path))

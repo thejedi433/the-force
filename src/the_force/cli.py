@@ -210,6 +210,21 @@ def cmd_holocron(args: argparse.Namespace) -> int:
             print(f"Entry {args.delete} not found")
         return 0
     
+    if args.update is not None:
+        if args.text is None and args.source is None:
+            print("Error: --update requires at least one of --text or --source")
+            return 1
+        try:
+            if holocron.update_entry(args.update, text=args.text, source=args.source):
+                print(f"✓ Entry {args.update} updated")
+            else:
+                print(f"Entry {args.update} not found")
+                return 1
+        except HolocronError as e:
+            print(f"Error: {e}")
+            return 1
+        return 0
+    
     # Default: show count and recent
     count = holocron.entry_count()
     print(f"Your holocron contains {count} entries.")
@@ -382,6 +397,19 @@ def create_parser() -> argparse.ArgumentParser:
         type=int,
         metavar='ID',
         help='Delete an entry by ID'
+    )
+    
+    holocron_parser.add_argument(
+        '-u', '--update',
+        type=int,
+        metavar='ID',
+        help='Update an entry by ID (use with --text and/or --source)'
+    )
+    
+    holocron_parser.add_argument(
+        '--text',
+        type=str,
+        help='New text for update (used with --update)'
     )
     
     return parser

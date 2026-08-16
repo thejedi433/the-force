@@ -185,6 +185,61 @@ class TestHolocron:
         eid = holocron.add_entry("Fresh start")
         assert eid > 0
 
+    def test_update_entry_text(self, tmp_path):
+        """update_entry should change the text of an existing entry."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Original wisdom", source="Yoda")
+        result = holocron.update_entry(eid, text="Updated wisdom")
+        assert result is True
+        entry = holocron.get_entry(eid)
+        assert entry['text'] == "Updated wisdom"
+        # Source should remain unchanged
+        assert entry['source'] == "Yoda"
+
+    def test_update_entry_source(self, tmp_path):
+        """update_entry should change the source of an existing entry."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Some wisdom", source="Old Master")
+        result = holocron.update_entry(eid, source="New Master")
+        assert result is True
+        entry = holocron.get_entry(eid)
+        assert entry['source'] == "New Master"
+        assert entry['text'] == "Some wisdom"
+
+    def test_update_entry_both(self, tmp_path):
+        """update_entry should change both text and source."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Old text", source="Old source")
+        result = holocron.update_entry(eid, text="New text", source="New source")
+        assert result is True
+        entry = holocron.get_entry(eid)
+        assert entry['text'] == "New text"
+        assert entry['source'] == "New source"
+
+    def test_update_entry_nonexistent_returns_false(self, tmp_path):
+        """update_entry with unknown ID should return False."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        result = holocron.update_entry(999, text="anything")
+        assert result is False
+
+    def test_update_entry_empty_text_raises(self, tmp_path):
+        """update_entry with empty text should raise HolocronError."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Original")
+        with pytest.raises(HolocronError):
+            holocron.update_entry(eid, text="")
+
+    def test_update_entry_has_updated_at(self, tmp_path):
+        """update_entry should add an updated_at timestamp."""
+        import time
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Original")
+        time.sleep(0.01)  # ensure different timestamp
+        holocron.update_entry(eid, text="Modified")
+        entry = holocron.get_entry(eid)
+        assert 'updated_at' in entry
+        assert entry['updated_at'] >= entry['created_at']
+
     def test_load_data_file_disappears(self, tmp_path):
         """_load_data should handle file disappearance during load."""
         path = str(tmp_path / "h.json")
