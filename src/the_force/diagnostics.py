@@ -16,8 +16,16 @@ def get_cpu_usage() -> Optional[str]:
         )
         for line in result.stdout.split('\n'):
             if 'Cpu(s)' in line:
-                cpu_pct = line.split(':')[1].split(',')[0].strip()
-                return f"{cpu_pct}%"
+                # Parse all fields to calculate total CPU usage (100% - idle)
+                parts = line.split(':')[1].strip()
+                idle_pct = 0.0
+                for part in parts.split(','):
+                    part = part.strip()
+                    if part.endswith('id'):
+                        idle_pct = float(part.split()[0])
+                        break
+                cpu_pct = 100.0 - idle_pct
+                return f"{cpu_pct:.1f}%"
         return None
     except Exception:
         return None

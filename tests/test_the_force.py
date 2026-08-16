@@ -121,10 +121,10 @@ class TestDiagnostics:
     def test_get_cpu_usage_success(self, mock_run):
         """get_cpu_usage should parse top output."""
         mock_run.return_value = MagicMock(
-            stdout="top output\n%Cpu(s): 12.3 us, 0.0 sy\nmore stuff"
+            stdout="top output\n%Cpu(s):  4.2 us,  1.5 sy,  0.0 ni, 93.8 id,  0.0 wa,  0.3 hi,  0.2 si,  0.0 st\nmore stuff"
         )
         cpu = get_cpu_usage()
-        assert cpu == "12.3 us%"
+        assert cpu == "6.2%"
     
     @patch('subprocess.run')
     def test_get_cpu_usage_failure(self, mock_run):
