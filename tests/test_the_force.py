@@ -21,7 +21,8 @@ from the_force.diagnostics import (
     get_uptime,
     get_load_average,
     get_all_diagnostics,
-    get_force_sensitivity
+    get_force_sensitivity,
+    get_network_interfaces
 )
 from the_force.meditation import (
     meditation_timer,
@@ -233,6 +234,126 @@ class TestDiagnostics:
         # With low CPU, should get reasonable score
         assert 'score' in result
         assert 0 <= result['score'] <= 100
+    
+    @patch('subprocess.run')
+    def test_get_cpu_usage_no_cpu_line(self, mock_run):
+        """get_cpu_usage should return None if Cpu(s) line not found."""
+        mock_run.return_value = MagicMock(
+            stdout="top output\nno cpu info here\nmore stuff"
+        )
+        cpu = get_cpu_usage()
+        assert cpu is None
+    
+    @patch('subprocess.run')
+    def test_get_memory_usage_insufficient_lines(self, mock_run):
+        """get_memory_usage should return None if free output has < 2 lines."""
+        mock_run.return_value = MagicMock(stdout="only one line")
+        mem = get_memory_usage()
+        assert mem is None
+    
+    @patch('subprocess.run')
+    def test_get_memory_usage_with_available(self, mock_run):
+        """get_memory_usage should parse available field if present."""
+        mock_run.return_value = MagicMock(
+            stdout="              total        used        free      shared  buff/cache   available\nMem:           3795        1287        2508         100         100        2400\n"
+        )
+        mem = get_memory_usage()
+        assert mem is not None
+        assert mem['available'] == 2400
+    
+    @patch('subprocess.run')
+    def test_get_disk_usage_insufficient_lines(self, mock_run):
+        """get_disk_usage should return None if df output has < 2 lines."""
+        mock_run.return_value = MagicMock(stdout="Filesystem      Size  Used Avail Use% Mounted on")
+        disk = get_disk_usage()
+        assert disk is None
+    
+    @patch('subprocess.run')
+    def test_get_uptime_failure(self, mock_run):
+        """get_uptime should handle errors."""
+        mock_run.side_effect = Exception("Command failed")
+        uptime = get_uptime()
+        assert uptime is None
+    
+    @patch('os.getloadavg')
+    def test_get_load_average_failure(self, mock_getloadavg):
+        """get_load_average should handle errors."""
+        mock_getloadavg.side_effect = Exception("Not available")
+        load = get_load_average()
+        assert load is None
+    
+    @patch('subprocess.run')
+    def test_get_network_interfaces_failure(self, mock_run):
+        """get_network_interfaces should return empty list on error."""
+        mock_run.side_effect = Exception("Command failed")
+        interfaces = get_network_interfaces()
+        assert interfaces == []
+    
+    @patch('the_force.diagnostics.get_network_interfaces')
+    @patch('the_force.diagnostics.get_load_average')
+    @patch('the_force.diagnostics.get_memory_usage')
+    @patch('the_force.diagnostics.get_cpu_usage')
+    def test_get_force_sensitivity_all_none(self, mock_cpu, mock_mem, mock_load, mock_net):
+        """get_force_sensitivity should handle all diagnostics returning None."""
+        mock_cpu.return_value = None
+        mock_mem.return_value = None
+        mock_load.return_value = None
+        mock_net.return_value = []
+        result = get_force_sensitivity()
+        assert result['score'] == 100.0  # No penalties if data unavailable
+        assert result['level'] == 'Master'
+    
+    @patch('the_force.diagnostics.get_network_interfaces')
+    @patch('the_force.diagnostics.get_load_average')
+    @patch('the_force.diagnostics.get_memory_usage')
+    @patch('the_force.diagnostics.get_cpu_usage')
+    def test_get_force_sensitivity_high_cpu(self, mock_cpu, mock_mem, mock_load, mock_net):
+        """get_force_sensitivity should penalize high CPU usage."""
+        mock_cpu.return_value = "95.0%"
+        mock_mem.return_value = {'total': 1000, 'used': 500}
+        mock_load.return_value = {'1min': '0.5'}
+        mock_net.return_value = []
+        result = get_force_sensitivity()
+        assert result['score'] < 100  # Should be penalized
+    
+    @patch('the_force.diagnostics.get_network_interfaces')
+    @patch('the_force.diagnostics.get_load_average')
+    @patch('the_force.diagnostics.get_memory_usage')
+    @patch('the_force.diagnostics.get_cpu_usage')
+    def test_get_force_sensitivity_high_memory(self, mock_cpu, mock_mem, mock_load, mock_net):
+        """get_force_sensitivity should penalize high memory usage."""
+        mock_cpu.return_value = "10.0%"
+        mock_mem.return_value = {'total': 1000, 'used': 900}  # 90% usage
+        mock_load.return_value = {'1min': '0.5'}
+        mock_net.return_value = []
+        result = get_force_sensitivity()
+        assert result['score'] < 100  # Should be penalized
+    
+    @patch('the_force.diagnostics.get_network_interfaces')
+    @patch('the_force.diagnostics.get_load_average')
+    @patch('the_force.diagnostics.get_memory_usage')
+    @patch('the_force.diagnostics.get_cpu_usage')
+    def test_get_force_sensitivity_low_memory(self, mock_cpu, mock_mem, mock_load, mock_net):
+        """get_force_sensitivity should penalize very low memory usage."""
+        mock_cpu.return_value = "10.0%"
+        mock_mem.return_value = {'total': 1000, 'used': 100}  # 10% usage
+        mock_load.return_value = {'1min': '0.5'}
+        mock_net.return_value = []
+        result = get_force_sensitivity()
+        assert result['score'] < 100  # Should be penalized
+    
+    @patch('the_force.diagnostics.get_network_interfaces')
+    @patch('the_force.diagnostics.get_load_average')
+    @patch('the_force.diagnostics.get_memory_usage')
+    @patch('the_force.diagnostics.get_cpu_usage')
+    def test_get_force_sensitivity_high_load(self, mock_cpu, mock_mem, mock_load, mock_net):
+        """get_force_sensitivity should penalize high load average."""
+        mock_cpu.return_value = "10.0%"
+        mock_mem.return_value = {'total': 1000, 'used': 500}
+        mock_load.return_value = {'1min': '8.0'}  # High load
+        mock_net.return_value = []
+        result = get_force_sensitivity()
+        assert result['score'] < 100  # Should be penalized
 
 
 class TestMeditation:
@@ -271,6 +392,35 @@ class TestMeditation:
         result = meditation_timer(duration=1, progress_callback=callback, tick=0.5)
         assert result['completed'] is True
         assert len(callback_calls) > 0
+    
+    @patch('the_force.meditation.time.sleep')
+    @patch('the_force.meditation.time.time')
+    def test_meditation_timer_keyboard_interrupt(self, mock_time, mock_sleep):
+        """meditation_timer should handle KeyboardInterrupt and return partial duration."""
+        # start=0, while_check=0, elapsed=5, remaining=5, then interrupt, except_elapsed=5
+        mock_time.side_effect = [0.0, 0.0, 5.0, 5.0, 5.0]
+        mock_sleep.side_effect = KeyboardInterrupt()
+        
+        result = meditation_timer(duration=60, tick=1.0)
+        assert result['completed'] is False
+        assert result['duration'] == 5  # elapsed when interrupted
+    
+    @patch('the_force.meditation.time.sleep')
+    @patch('the_force.meditation.time.time')
+    def test_meditation_timer_keyboard_interrupt_with_callback(self, mock_time, mock_sleep):
+        """meditation_timer should call callback even when interrupted."""
+        callback_calls = []
+        def callback(elapsed, total):
+            callback_calls.append((elapsed, total))
+        
+        # start=0, while_check=0, elapsed=10, remaining=10, then interrupt, except_elapsed=10
+        mock_time.side_effect = [0.0, 0.0, 10.0, 10.0, 10.0]
+        mock_sleep.side_effect = KeyboardInterrupt()
+        
+        result = meditation_timer(duration=60, progress_callback=callback, tick=1.0)
+        assert result['completed'] is False
+        assert result['duration'] == 10
+        assert len(callback_calls) == 1
 
 
 class TestCLI:
