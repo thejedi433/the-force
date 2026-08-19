@@ -169,35 +169,10 @@ def cmd_holocron(args: argparse.Namespace) -> int:
     
     if args.add is not None:
         source = args.source or ""
+        tags = getattr(args, 'tag', None) or []
         try:
-            entry_id = holocron.add_entry(args.add, source)
+            entry_id = holocron.add_entry(args.add, source, tags=tags if tags else None)
             print(f"✓ Wisdom recorded (ID: {entry_id})")
-        except HolocronError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            return 1
-        return 0
-    
-    if args.list:
-        entries = holocron.list_entries(limit=args.limit)
-        if not entries:
-            print("Your holocron is empty. Record wisdom with: the-force holocron --add \"text\"")
-            return 0
-        for entry in entries:
-            source_str = f" — {entry['source']}" if entry['source'] else ""
-            print(f"[{entry['id']}] {entry['text']}{source_str}")
-        print(f"\n{holocron.entry_count()} total entries")
-        return 0
-    
-    if args.search is not None:
-        try:
-            results = holocron.search_entries(args.search)
-            if not results:
-                print(f"No entries found matching '{args.search}'")
-                return 0
-            for entry in results:
-                source_str = f" — {entry['source']}" if entry['source'] else ""
-                print(f"[{entry['id']}] {entry['text']}{source_str}")
-            print(f"\n{len(results)} entries found")
         except HolocronError as e:
             print(f"Error: {e}", file=sys.stderr)
             return 1
@@ -211,17 +186,71 @@ def cmd_holocron(args: argparse.Namespace) -> int:
         return 0
     
     if args.update is not None:
-        if args.text is None and args.source is None:
-            print("Error: --update requires at least one of --text or --source")
+        if args.text is None and args.source is None and not getattr(args, 'tag', None):
+            print("Error: --update requires at least one of --text, --source, or --tag")
             return 1
         try:
-            if holocron.update_entry(args.update, text=args.text, source=args.source):
+            tags = getattr(args, 'tag', None)
+            if holocron.update_entry(args.update, text=args.text, source=args.source, tags=tags):
                 print(f"✓ Entry {args.update} updated")
             else:
                 print(f"Entry {args.update} not found")
                 return 1
         except HolocronError as e:
             print(f"Error: {e}")
+            return 1
+        return 0
+    
+    if getattr(args, 'tags', False):
+        all_tags = holocron.get_all_tags()
+        if not all_tags:
+            print("No tags found in your holocron.")
+            return 0
+        print("=== Holocron Tags ===\n")
+        for tag in all_tags:
+            print(f"  • {tag}")
+        print(f"\n{len(all_tags)} unique tags")
+        return 0
+    
+    if args.list:
+        entries = holocron.list_entries(limit=args.limit)
+        if not entries:
+            print("Your holocron is empty. Record wisdom with: the-force holocron --add \"text\"")
+            return 0
+        for entry in entries:
+            source_str = f" — {entry['source']}" if entry['source'] else ""
+            tags_str = ""
+            if entry.get('tags'):
+                tags_str = f" [{', '.join(entry['tags'])}]"
+            print(f"[{entry['id']}] {entry['text']}{source_str}{tags_str}")
+        print(f"\n{holocron.entry_count()} total entries")
+        return 0
+    
+    if args.search is not None or getattr(args, 'tag', None):
+        tag_filter = getattr(args, 'tag', None)
+        # If --tag used alone (no --search), use first tag as filter
+        if args.search is None and tag_filter:
+            tag_filter = tag_filter[0]
+        try:
+            results = holocron.search_entries(
+                query=args.search,
+                tag=tag_filter if tag_filter else None
+            )
+            if not results:
+                search_desc = args.search or ""
+                if tag_filter:
+                    search_desc += f" tag:{tag_filter}"
+                print(f"No entries found matching '{search_desc.strip()}'")
+                return 0
+            for entry in results:
+                source_str = f" — {entry['source']}" if entry['source'] else ""
+                tags_str = ""
+                if entry.get('tags'):
+                    tags_str = f" [{', '.join(entry['tags'])}]"
+                print(f"[{entry['id']}] {entry['text']}{source_str}{tags_str}")
+            print(f"\n{len(results)} entries found")
+        except HolocronError as e:
+            print(f"Error: {e}", file=sys.stderr)
             return 1
         return 0
     
@@ -232,7 +261,10 @@ def cmd_holocron(args: argparse.Namespace) -> int:
         print("\nRecent entries:")
         for entry in holocron.list_entries(limit=3):
             source_str = f" — {entry['source']}" if entry['source'] else ""
-            print(f"  [{entry['id']}] {entry['text']}{source_str}")
+            tags_str = ""
+            if entry.get('tags'):
+                tags_str = f" [{', '.join(entry['tags'])}]"
+            print(f"  [{entry['id']}] {entry['text']}{source_str}{tags_str}")
     return 0
 
 
@@ -410,6 +442,20 @@ def create_parser() -> argparse.ArgumentParser:
         '--text',
         type=str,
         help='New text for update (used with --update)'
+    )
+    
+    holocron_parser.add_argument(
+        '--tag',
+        type=str,
+        action='append',
+        metavar='TAG',
+        help='Tag for entry (used with --add, --update, --search, or --tag alone to search by tag)'
+    )
+    
+    holocron_parser.add_argument(
+        '--tags',
+        action='store_true',
+        help='List all unique tags'
     )
     
     return parser

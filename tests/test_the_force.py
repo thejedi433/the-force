@@ -536,6 +536,64 @@ class TestHolocronCLI:
         captured = capsys.readouterr()
         assert "not found" in captured.out
 
+    def test_main_holocron_add_with_tags(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --add --tag should add entry with tags."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        result = main(['holocron', '--add', 'Patience is key', '--tag', 'patience', '--tag', 'jedi'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "recorded" in captured.out
+        
+        # Verify tags were stored
+        result = main(['holocron', '--list'])
+        captured = capsys.readouterr()
+        assert "patience" in captured.out or "jedi" in captured.out
+
+    def test_main_holocron_search_by_tag(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --tag should find by tag."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'Patience wisdom', '--tag', 'patience'])
+        main(['holocron', '--add', 'Strength wisdom', '--tag', 'strength'])
+        result = main(['holocron', '--tag', 'patience'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "Patience wisdom" in captured.out
+        assert "Strength wisdom" not in captured.out
+
+    def test_main_holocron_search_by_tag_only(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --tag should search by tag only."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'Jedi wisdom', '--tag', 'jedi'])
+        main(['holocron', '--add', 'Sith wisdom', '--tag', 'sith'])
+        result = main(['holocron', '--tag', 'jedi'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "Jedi wisdom" in captured.out
+        assert "Sith wisdom" not in captured.out
+
+    def test_main_holocron_tags_list(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --tags should list all unique tags."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'One', '--tag', 'patience', '--tag', 'jedi'])
+        main(['holocron', '--add', 'Two', '--tag', 'strength'])
+        main(['holocron', '--add', 'Three', '--tag', 'patience', '--tag', 'wisdom'])
+        result = main(['holocron', '--tags'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "patience" in captured.out
+        assert "jedi" in captured.out
+        assert "strength" in captured.out
+        assert "wisdom" in captured.out
+
+    def test_main_holocron_update_with_tags(self, capsys, tmp_path, monkeypatch):
+        """main with holocron --update --tag should update tags."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        main(['holocron', '--add', 'Wisdom', '--tag', 'old'])
+        result = main(['holocron', '--update', '1', '--tag', 'new', '--tag', 'updated'])
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "updated" in captured.out.lower()
+
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

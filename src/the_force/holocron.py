@@ -61,12 +61,13 @@ class Holocron:
             return 1
         return max(entry['id'] for entry in data['entries']) + 1
     
-    def add_entry(self, text: str, source: str = "") -> int:
+    def add_entry(self, text: str, source: str = "", tags: Optional[list[str]] = None) -> int:
         """Add a wisdom entry to the holocron.
         
         Args:
             text: The wisdom text
             source: Optional source/author of the wisdom
+            tags: Optional list of tags for categorization
             
         Returns:
             ID of the newly created entry
@@ -82,6 +83,7 @@ class Holocron:
             'id': entry_id,
             'text': text,
             'source': source,
+            'tags': [tag.lower() for tag in tags] if tags else [],
             'created_at': datetime.now().isoformat()
         }
         
@@ -106,13 +108,14 @@ class Holocron:
                 return entry.copy()
         return None
     
-    def update_entry(self, entry_id: int, text: Optional[str] = None, source: Optional[str] = None) -> bool:
+    def update_entry(self, entry_id: int, text: Optional[str] = None, source: Optional[str] = None, tags: Optional[list[str]] = None) -> bool:
         """Update an existing entry.
         
         Args:
             entry_id: ID of the entry to update
             text: New text (optional, if None keeps current)
             source: New source (optional, if None keeps current)
+            tags: New tags list (optional, if None keeps current)
             
         Returns:
             True if updated, False if not found
@@ -130,6 +133,8 @@ class Holocron:
                     entry['text'] = text
                 if source is not None:
                     entry['source'] = source
+                if tags is not None:
+                    entry['tags'] = [tag.lower() for tag in tags]
                 entry['updated_at'] = datetime.now().isoformat()
                 self._save_data(data)
                 return True
@@ -174,29 +179,42 @@ class Holocron:
         
         return [e.copy() for e in entries]
     
-    def search_entries(self, query: str) -> list[dict]:
-        """Search entries by text (case-insensitive).
+    def search_entries(self, query: Optional[str] = None, tag: Optional[str] = None) -> list[dict]:
+        """Search entries by text and/or tag (case-insensitive).
         
         Args:
-            query: Search query
+            query: Search query for text (optional)
+            tag: Tag to filter by (optional)
             
         Returns:
             List of matching entries
             
         Raises:
-            HolocronError: If query is empty
+            HolocronError: If both query and tag are empty
         """
-        if not query or not query.strip():
-            raise HolocronError("Search query cannot be empty")
+        if (query is None or not query.strip()) and (tag is None or not tag.strip()):
+            raise HolocronError("Search query or tag cannot be empty")
         
-        query_lower = query.lower()
         data = self._load_data()
+        results = []
         
-        results = [
-            entry.copy()
-            for entry in data['entries']
-            if query_lower in entry['text'].lower()
-        ]
+        for entry in data['entries']:
+            matches = True
+            
+            # Check text query if provided
+            if query is not None and query.strip():
+                query_lower = query.lower()
+                if query_lower not in entry['text'].lower():
+                    matches = False
+            
+            # Check tag if provided
+            if tag is not None and tag.strip():
+                tag_lower = tag.lower()
+                if tag_lower not in [t.lower() for t in entry.get('tags', [])]:
+                    matches = False
+            
+            if matches:
+                results.append(entry.copy())
         
         return sorted(results, key=lambda e: e['created_at'], reverse=True)
     
@@ -204,3 +222,16 @@ class Holocron:
         """Get total number of entries."""
         data = self._load_data()
         return len(data['entries'])
+    
+    def get_all_tags(self) -> list[str]:
+        """Get list of all unique tags across all entries.
+        
+        Returns:
+            Sorted list of unique tags
+        """
+        data = self._load_data()
+        all_tags = set()
+        for entry in data['entries']:
+            for tag in entry.get('tags', []):
+                all_tags.add(tag)
+        return sorted(list(all_tags))

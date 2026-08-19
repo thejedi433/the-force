@@ -250,3 +250,82 @@ class TestHolocron:
         # Should return empty dict
         data = holocron._load_data()
         assert data == {"entries": []}
+
+    def test_add_entry_with_tags(self, tmp_path):
+        """add_entry should accept and store tags."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Wisdom about patience", tags=["patience", "jedi"])
+        entry = holocron.get_entry(eid)
+        assert 'tags' in entry
+        assert isinstance(entry['tags'], list)
+        assert "patience" in entry['tags']
+        assert "jedi" in entry['tags']
+
+    def test_add_entry_without_tags(self, tmp_path):
+        """add_entry without tags should default to empty list."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Simple wisdom")
+        entry = holocron.get_entry(eid)
+        assert 'tags' in entry
+        assert entry['tags'] == []
+
+    def test_search_entries_by_tag(self, tmp_path):
+        """search_entries should find entries by tag."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        holocron.add_entry("Patience is key", tags=["patience"])
+        holocron.add_entry("Strength in the Force", tags=["strength"])
+        holocron.add_entry("Patient training", tags=["patience", "training"])
+        results = holocron.search_entries(tag="patience")
+        assert len(results) == 2
+        texts = [r['text'] for r in results]
+        assert "Patience is key" in texts
+        assert "Patient training" in texts
+
+    def test_search_entries_by_tag_case_insensitive(self, tmp_path):
+        """search_entries by tag should be case-insensitive."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        holocron.add_entry("Test", tags=["JEDI"])
+        results = holocron.search_entries(tag="jedi")
+        assert len(results) == 1
+
+    def test_search_entries_combined_text_and_tag(self, tmp_path):
+        """search_entries should support both text and tag filters."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        holocron.add_entry("Force is strong", tags=["force"])
+        holocron.add_entry("Dark side", tags=["dark"])
+        holocron.add_entry("Force sensitivity", tags=["sensitivity"])
+        results = holocron.search_entries(query="force", tag="force")
+        assert len(results) == 1
+        assert results[0]['text'] == "Force is strong"
+
+    def test_update_entry_tags(self, tmp_path):
+        """update_entry should allow updating tags."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        eid = holocron.add_entry("Wisdom", tags=["old"])
+        result = holocron.update_entry(eid, tags=["new", "updated"])
+        assert result is True
+        entry = holocron.get_entry(eid)
+        assert "new" in entry['tags']
+        assert "updated" in entry['tags']
+        assert "old" not in entry['tags']
+
+    def test_get_all_tags(self, tmp_path):
+        """get_all_tags should return list of all unique tags."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        holocron.add_entry("One", tags=["patience", "jedi"])
+        holocron.add_entry("Two", tags=["strength"])
+        holocron.add_entry("Three", tags=["patience", "wisdom"])
+        tags = holocron.get_all_tags()
+        assert isinstance(tags, list)
+        assert "patience" in tags
+        assert "jedi" in tags
+        assert "strength" in tags
+        assert "wisdom" in tags
+        # Should be unique
+        assert len(tags) == len(set(tags))
+
+    def test_get_all_tags_empty(self, tmp_path):
+        """get_all_tags on empty holocron returns empty list."""
+        holocron = Holocron(str(tmp_path / "h.json"))
+        tags = holocron.get_all_tags()
+        assert tags == []
