@@ -52,6 +52,10 @@ class TestCLIUncoveredPaths:
         """cmd_lightsaber with --list should show all colors."""
         args = MagicMock()
         args.list = True
+        args.count = False
+        args.name = None
+        args.color = None
+        args.alignment = None
         
         result = cmd_lightsaber(args)
         

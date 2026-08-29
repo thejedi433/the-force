@@ -10,7 +10,14 @@ from the_force import __version__
 from the_force.wisdom import get_random_wisdom, get_all_wisdom, format_wisdom, wisdom_count
 from the_force.diagnostics import get_all_diagnostics, get_cpu_usage, get_memory_usage, get_disk_usage, get_force_sensitivity
 from the_force.meditation import meditation_timer, format_duration, breathing_guide
-from the_force.lightsaber import get_random_lightsaber, get_lightsaber_by_name, get_all_lightsaber_colors
+from the_force.lightsaber import (
+    get_random_lightsaber,
+    get_lightsaber_by_name,
+    get_all_lightsaber_colors,
+    get_lightsabers_by_color,
+    get_lightsabers_by_alignment,
+    lightsaber_count,
+)
 from the_force.sith import get_random_sith_quote, get_all_sith_quotes, format_sith_quote, sith_quote_count, get_sith_code
 from the_force.holocron import Holocron, HolocronError
 
@@ -114,13 +121,77 @@ def cmd_sensitivity(args: argparse.Namespace) -> int:
 
 def cmd_lightsaber(args: argparse.Namespace) -> int:
     """Handle lightsaber command."""
+    # Handle --count flag
+    if getattr(args, 'count', False):
+        count = lightsaber_count()
+        print(f"Total lightsabers in collection: {count}")
+        return 0
+
+    # Handle --name flag
+    if getattr(args, 'name', None):
+        saber = get_lightsaber_by_name(args.name)
+        if not saber:
+            print(f"Lightsaber for '{args.name}' not found.")
+            return 0
+        color_codes = {
+            'blue': '\033[94m',
+            'green': '\033[92m',
+            'red': '\033[91m',
+            'purple': '\033[95m',
+            'yellow': '\033[93m',
+            'white': '\033[97m',
+            'cyan': '\033[96m'
+        }
+        color_code = color_codes.get(saber['color'], '\033[96m')
+        reset = '\033[0m'
+        print(f"\n{color_code}{saber['name']}'s Lightsaber{reset}")
+        print(f"Color: {saber['color']}")
+        print(f"Alignment: {saber['alignment']}")
+        print(f"\n{saber['description']}")
+        return 0
+
+    # Handle --color flag
+    if getattr(args, 'color', None):
+        sabers = get_lightsabers_by_color(args.color)
+        if not sabers:
+            print(f"No lightsabers found with color '{args.color}'.")
+            return 0
+        print(f"\n=== Lightsabers with {args.color} blade ===\n")
+        for saber in sabers:
+            print(f"  • {saber['name']} ({saber['alignment']})")
+        return 0
+
+    # Handle --alignment flag
+    if getattr(args, 'alignment', None):
+        sabers = get_lightsabers_by_alignment(args.alignment)
+        if not sabers:
+            print(f"No lightsabers found with alignment '{args.alignment}'.")
+            return 0
+        print(f"\n=== {args.alignment} Lightsabers ===\n")
+        for saber in sabers:
+            color_codes = {
+                'blue': '\033[94m',
+                'green': '\033[92m',
+                'red': '\033[91m',
+                'purple': '\033[95m',
+                'yellow': '\033[93m',
+                'white': '\033[97m',
+                'cyan': '\033[96m'
+            }
+            color_code = color_codes.get(saber['color'], '\033[96m')
+            reset = '\033[0m'
+            print(f"  {color_code}• {saber['name']}{reset} ({saber['color']})")
+        return 0
+
+    # Handle --list flag (original behavior)
     if hasattr(args, 'list') and args.list:
         colors = get_all_lightsaber_colors()
         print("=== All Lightsaber Colors ===\n")
         for color in colors:
             print(f"  • {color}")
         return 0
-    
+
+    # Default: random lightsaber
     saber = get_random_lightsaber()
     color_codes = {
         'blue': '\033[94m',
@@ -365,6 +436,29 @@ def create_parser() -> argparse.ArgumentParser:
         '-l', '--list',
         action='store_true',
         help='List all available lightsaber colors'
+    )
+    lightsaber_parser.add_argument(
+        '-n', '--name',
+        type=str,
+        metavar='CHARACTER',
+        help='Look up lightsaber by character name'
+    )
+    lightsaber_parser.add_argument(
+        '-c', '--color',
+        type=str,
+        metavar='COLOR',
+        help='Filter lightsabers by blade color (e.g., blue, red, green)'
+    )
+    lightsaber_parser.add_argument(
+        '-a', '--alignment',
+        type=str,
+        metavar='ALIGNMENT',
+        help='Filter lightsabers by alignment (Light or Dark)'
+    )
+    lightsaber_parser.add_argument(
+        '--count',
+        action='store_true',
+        help='Show total number of lightsabers in the collection'
     )
     
     # sith command

@@ -36,6 +36,30 @@ LIGHTSABERS = [
         'alignment': 'Light'
     },
     {
+        'name': 'Ahsoka',
+        'color': 'white',
+        'description': 'The purified white lightsabers of Ahsoka Tano, symbolizing her independence from Jedi and Sith.',
+        'alignment': 'Light'
+    },
+    {
+        'name': 'Rey',
+        'color': 'yellow',
+        'description': 'Rey Skywalker\'s yellow-bladed lightsaber, representing her unique path as a Jedi.',
+        'alignment': 'Light'
+    },
+    {
+        'name': 'Kylo Ren',
+        'color': 'red',
+        'description': 'Kylo Ren\'s unstable red crossguard lightsaber, forged in a cracked kyber crystal.',
+        'alignment': 'Dark'
+    },
+    {
+        'name': 'Dooku',
+        'color': 'red',
+        'description': 'Count Dooku\'s elegant curved-hilt lightsaber, reflecting his aristocratic style.',
+        'alignment': 'Dark'
+    },
+    {
         'name': 'Vader',
         'color': 'red',
         'description': 'The crimson-bladed lightsaber of Darth Vader, symbol of the dark side.',
@@ -73,3 +97,20 @@ def get_all_lightsaber_colors() -> list[str]:
     """Return list of all unique lightsaber colors."""
     colors = list(set(saber['color'] for saber in LIGHTSABERS))
     return sorted(colors)
+
+
+def get_lightsabers_by_color(color: str) -> list[dict]:
+    """Return all lightsabers of a given color (case-insensitive)."""
+    color_lower = color.lower()
+    return [saber.copy() for saber in LIGHTSABERS if saber['color'].lower() == color_lower]
+
+
+def get_lightsabers_by_alignment(alignment: str) -> list[dict]:
+    """Return all lightsabers of a given alignment (Light/Dark/Balanced, case-insensitive)."""
+    alignment_lower = alignment.lower()
+    return [saber.copy() for saber in LIGHTSABERS if saber['alignment'].lower() == alignment_lower]
+
+
+def lightsaber_count() -> int:
+    """Return the total number of lightsabers in the collection."""
+    return len(LIGHTSABERS)
