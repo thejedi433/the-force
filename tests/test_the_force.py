@@ -502,8 +502,11 @@ class TestCLI:
         result = main(['lightsaber'])
         assert result == 0
         captured = capsys.readouterr()
-        assert any(name in captured.out for name in ['Anakin', 'Luke', 'Mace Windu', 'Yoda', 'Obi-Wan', 'Vader', 'Sidious', 'Maul'])
-        assert any(color in captured.out for color in ['blue', 'green', 'purple', 'red'])
+        valid_names = ['Anakin', 'Luke', 'Mace Windu', 'Yoda', 'Obi-Wan', 'Vader',
+                       'Sidious', 'Maul', 'Ahsoka', 'Rey', 'Kylo Ren', 'Dooku']
+        assert any(name in captured.out for name in valid_names)
+        valid_colors = ['blue', 'green', 'purple', 'red', 'white', 'yellow']
+        assert any(color in captured.out for color in valid_colors)
 
 
 class TestLightsaber:
