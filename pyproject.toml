@@ -25,4 +25,4 @@ pythonpath = ["src"]
 
 [tool.coverage.run]
 source = ["the_force"]
-omit = ["tests/*"]
+omit = ["tests/*", "src/the_force/__main__.py"]
